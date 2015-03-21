@@ -6,7 +6,7 @@
 static coro_context _sched_ctx;
 static unsigned long _taskcount = 0;
 
-CoioTaskList coio_ready = {0};
+CoioTaskList coio_ready = {0, 0};
 CoioTask *coio_current;
 
 int
