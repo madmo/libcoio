@@ -7,25 +7,25 @@
 typedef struct CoioTaskList CoioTaskList;
 
 struct CoioTask {
-	coro_context ctx;
+	coro_context 	ctx;
 	struct coro_stack stk;
 
-	coro_func func;
-	void *arg;
+	coio_func 	func;
+	void           *arg;
 
-	int done;
+	int 		done;
 
 	/* linked list support */
-	CoioTask *next;
-	CoioTask *prev;
+	CoioTask       *next;
+	CoioTask       *prev;
 };
 
 struct CoioTaskList {
-	CoioTask *head;
-	CoioTask *tail;
+	CoioTask       *head;
+	CoioTask       *tail;
 };
 
-void coio_add(CoioTaskList *lst, CoioTask *task);
-void coio_del(CoioTaskList *lst, CoioTask *task);
+void 		coio_add (CoioTaskList * lst, CoioTask * task);
+void 		coio_del (CoioTaskList * lst, CoioTask * task);
 
 #endif
