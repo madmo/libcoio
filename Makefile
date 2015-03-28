@@ -17,7 +17,10 @@ $(LIB): $(OBJS)
 testyield: testyield.c $(LIB)
 	$(CC) $(CFLAGS) -o $@ testyield.c $(LIB)
 
-test: testyield
+testdelay: testdelay.c $(LIB)
+	$(CC) $(CFLAGS) -o $@ testdelay.c $(LIB)
+
+test: testyield testdelay
 
 clean:
 	rm -f $(OBJS)

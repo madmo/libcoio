@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "coioimpl.h"
 #include "coro.h"
@@ -22,7 +23,36 @@ static coro_context _sched_ctx;
 static unsigned long _taskcount = 0;
 
 CoioTaskList 	coio_ready = {0, 0};
+CoioTaskList 	coio_sleeping = {0, 0};
 CoioTask       *coio_current;
+
+static void
+_process_events()
+{
+	uvlong 		now;
+	int 		ms = 5;
+	CoioTask       *t;
+
+	if ((t = coio_sleeping.head) != NULL && t->timeout != 0) {
+		now = coio_now();
+		if (now >= t->timeout) {
+			ms = 0;
+		} else {
+			ms = (t->timeout - now) / 1000000;
+		}
+	}
+	/* TODO:do I/O polling instead of usleep */
+	usleep(ms * 1000);
+
+	/* handle CLOCK_MONOTONIC bugs (VirtualBox anyone?) */
+	while (!coio_ready.head) {
+		/* wake up timed out tasks */
+		now = coio_now();
+		while ((t = coio_sleeping.head) && now >= t->timeout) {
+			coio_rdy(t);
+		}
+	}
+}
 
 int
 coio_main()
@@ -32,6 +62,9 @@ coio_main()
 
 	/* scheduler mainloop */
 	for (;;) {
+		if (!coio_ready.head && coio_sleeping.head)
+			_process_events();
+
 		if (!coio_ready.head)
 			break;
 
@@ -88,11 +121,55 @@ coio_create(coio_func f, void *arg, unsigned int stacksize)
 	return 0;
 }
 
+uvlong
+coio_timeout(CoioTask * task, int ms)
+{
+	CoioTask       *t;
+
+	if (ms > 0)
+		task->timeout = coio_now() + (ms * 1000000);
+
+	for (t = coio_sleeping.head; t != NULL && t->timeout && t->timeout < task->timeout; t = t->next);
+
+	if (t) {
+		task->prev = t->prev;
+		task->next = t;
+	} else {
+		task->prev = coio_sleeping.tail;
+		task->next = NULL;
+	}
+
+	t = coio_current;
+
+	if (t->prev) {
+		t->prev->next = t;
+	} else {
+		coio_sleeping.head = t;
+	}
+
+	if (t->next) {
+		t->next->prev = t;
+	} else {
+		coio_sleeping.tail = t;
+	}
+
+	return task->timeout;
+}
+
+int
+coio_delay(int ms)
+{
+	uvlong 		when;
+	when = coio_timeout(coio_current, ms);
+	coio_transfer();
+	return (coio_now() - when) / 1000000;
+}
+
 void
 coio_yield()
 {
-	coio_add(&coio_ready, coio_current);
-	coro_transfer(&coio_current->ctx, &_sched_ctx);
+	coio_rdy(coio_current);
+	coio_transfer();
 }
 
 void
@@ -123,4 +200,29 @@ coio_del(CoioTaskList * lst, CoioTask * task)
 	} else {
 		lst->tail = task->prev;
 	}
+}
+
+void
+coio_rdy(CoioTask * task)
+{
+	task->timeout = 0;
+	coio_del(&coio_sleeping, task);
+	coio_add(&coio_ready, task);
+}
+
+void
+coio_transfer()
+{
+	coro_transfer(&coio_current->ctx, &_sched_ctx);
+}
+
+uvlong
+coio_now()
+{
+	struct timespec ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
+		return -1;
+
+	return (uvlong) ts.tv_sec * 1000 * 1000 * 1000 + ts.tv_nsec;
 }

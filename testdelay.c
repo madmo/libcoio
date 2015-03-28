@@ -13,41 +13,28 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef COIOIMPL_H
-#define COIOIMPL_H
-
-#include "coro.h"
+#include <stdio.h>
 #include "coio.h"
 
-typedef struct CoioTaskList CoioTaskList;
+void
+_t1(void *arg)
+{
+	printf("going to sleep 1000ms (1s)\n");
+	coio_delay(1000);
+	printf("woken up\n");
+}
 
-struct CoioTask {
-	coro_context 	ctx;
-	struct coro_stack stk;
+int
+main(int argc, char **argv)
+{
+	(void) argc;
+	(void) argv;
 
-	coio_func 	func;
-	void           *arg;
+	coio_create(_t1, NULL, 0x8000);
 
-	uvlong 		timeout;
-	int 		done;
-
-	/* linked list support */
-	CoioTask       *next;
-	CoioTask       *prev;
-};
-
-struct CoioTaskList {
-	CoioTask       *head;
-	CoioTask       *tail;
-};
-
-extern CoioTaskList coio_ready;
-extern CoioTaskList coio_sleeping;
-extern CoioTask *coio_current;
-
-void 		coio_add (CoioTaskList * lst, CoioTask * task);
-void 		coio_del (CoioTaskList * lst, CoioTask * task);
-void 		coio_rdy (CoioTask * task);
-void 		coio_transfer();
-
-#endif
+	if (coio_main() < 0) {
+		printf("Deadlocked\n");
+		return 1;
+	}
+	return 0;
+}
