@@ -25,7 +25,7 @@ test: testyield testdelay
 clean:
 	rm -f $(OBJS)
 	rm -f $(LIB)
-	rm -f testyield
+	rm -f testyield testdelay
 
 .PHONY: all clean test
 .SUFFIXES: .c .o
