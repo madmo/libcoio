@@ -19,6 +19,11 @@
 #include "coioimpl.h"
 #include "coro.h"
 
+#if defined(__APPLE__)
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
 static coro_context _sched_ctx;
 static unsigned long _taskcount = 0;
 
@@ -219,10 +224,21 @@ coio_transfer()
 uvlong
 coio_now()
 {
+#if defined(__APPLE__)
+	clock_serv_t cclock;
+	mach_timespec_t mts;
+
+	host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
+	clock_get_time(cclock, &mts);
+	mach_port_deallocate(mach_task_self(), cclock);
+
+	return (uvlong) mts.tv_sec * 1000 * 1000 * 1000 + mts.tv_nsec;
+#else
 	struct timespec ts;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
 		return -1;
 
 	return (uvlong) ts.tv_sec * 1000 * 1000 * 1000 + ts.tv_nsec;
+#endif
 }
