@@ -16,19 +16,25 @@
 #ifndef COIO_H
 #define COIO_H
 
+#include "coroutine.h"
+
 #ifdef __cplusplus
-extern 		"C" {
+extern      "C" {
 #endif
 
-	typedef struct CoioTask CoioTask;
-	typedef void    (*coio_func) (void *arg);
-	typedef unsigned long long uvlong;
+#define coio_yield() do { coio_yield_impl(); yield{}; } while (0)
+#define coio_delay(ms) do { coio_delay_impl(ms); yield{}; } while (0)
+#define coio_await(c, f, ...) while ((c)->step != -1 ) { f((c), ##__VA_ARGS__); coio_yield(); }
 
-	int 		coio_main ();
-	int 		coio_create(coio_func f, void *arg, unsigned int stacksize);
-	void 		coio_yield();
-	uvlong 		coio_now();
-	int 		coio_delay(int ms);
+typedef struct CoioTask CoioTask;
+typedef void (*coio_func)(coroutine_context* ctx, void* arg);
+typedef unsigned long long uvlong;
+
+int coio_main();
+int coio_create(coio_func f, void* arg);
+void coio_yield_impl();
+uvlong coio_now();
+int coio_delay_impl(int ms);
 
 #ifdef __cplusplus
 }

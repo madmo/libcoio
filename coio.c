@@ -15,45 +15,54 @@
  */
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "coioimpl.h"
-#include "coro.h"
+#include "coroutine.h"
 
 #if defined(__APPLE__)
 #include <mach/clock.h>
 #include <mach/mach.h>
 #endif
 
-static coro_context _sched_ctx;
 static unsigned long _taskcount = 0;
 
-CoioTaskList 	coio_ready = {0, 0};
-CoioTaskList 	coio_sleeping = {0, 0};
-CoioTask       *coio_current;
+CoioTaskList   coio_ready = {0, 0};
+CoioTaskList   coio_sleeping = {0, 0};
+CoioTask*       coio_current;
 
 static void
 _process_events()
 {
-	uvlong 		now;
-	int 		ms = 5;
-	CoioTask       *t;
+	uvlong      now;
+	int      ms = 5;
+	CoioTask*       t;
 
-	if ((t = coio_sleeping.head) != NULL && t->timeout != 0) {
+	if ((t = coio_sleeping.head) != NULL && t->timeout != 0)
+	{
 		now = coio_now();
-		if (now >= t->timeout) {
+
+		if (now >= t->timeout)
+		{
 			ms = 0;
-		} else {
+		}
+		else
+		{
 			ms = (t->timeout - now) / 1000000;
 		}
 	}
+
 	/* TODO:do I/O polling instead of usleep */
 	usleep(ms * 1000);
 
 	/* handle CLOCK_MONOTONIC bugs (VirtualBox anyone?) */
-	while (!coio_ready.head) {
+	while (!coio_ready.head)
+	{
 		/* wake up timed out tasks */
 		now = coio_now();
-		while ((t = coio_sleeping.head) && now >= t->timeout) {
+
+		while ((t = coio_sleeping.head) && now >= t->timeout)
+		{
 			coio_rdy(t);
 		}
 	}
@@ -62,99 +71,101 @@ _process_events()
 int
 coio_main()
 {
-	/* initialize empty ctx for scheduler */
-	coro_create(&_sched_ctx, NULL, NULL, NULL, 0);
-
 	/* scheduler mainloop */
-	for (;;) {
+	for (;;)
+	{
 		if (!coio_ready.head && coio_sleeping.head)
+		{
 			_process_events();
+		}
 
 		if (!coio_ready.head)
+		{
 			break;
+		}
 
 		coio_current = coio_ready.head;
 		coio_del(&coio_ready, coio_current);
-		coro_transfer(&_sched_ctx, &coio_current->ctx);
+		coio_current->ready = 0;
+		coio_current->func(&coio_current->ctx, coio_current->arg);
 
-		if (coio_current->done) {
+		if (coio_current->ctx.step == -1)
+		{
 			_taskcount--;
-			coro_stack_free(&coio_current->stk);
+			coio_del(&coio_sleeping, coio_current);
+			finish(&(coio_current->ctx));
 			free(coio_current);
 		}
+
 		coio_current = NULL;
 	}
 
-	if (_taskcount) {
+	if (_taskcount)
+	{
 		return -1;
 	}
+
 	return 0;
 }
 
-static void
-_coio_entry(void *arg)
-{
-	CoioTask       *task = (CoioTask *) arg;
-
-	task->func(task->arg);
-
-	task->done = 1;
-	coro_transfer(&coio_current->ctx, &_sched_ctx);
-}
-
 int
-coio_create(coio_func f, void *arg, unsigned int stacksize)
+coio_create(coio_func f, void* arg)
 {
-	CoioTask       *task;
-
+	CoioTask*       task;
 	task = calloc(1, sizeof(*task));
-	if (!task)
-		return -1;
 
-	if (!coro_stack_alloc(&task->stk, stacksize / sizeof(void *))) {
-		free(task);
+	if (!task)
+	{
 		return -1;
 	}
+
 	task->func = f;
 	task->arg = arg;
-
-	coro_create(&task->ctx, _coio_entry, task, task->stk.sptr, task->stk.ssze);
-
 	coio_add(&coio_ready, task);
 	_taskcount++;
-
 	return 0;
 }
 
 uvlong
-coio_timeout(CoioTask * task, int ms)
+coio_timeout(CoioTask* task, int ms)
 {
-	CoioTask       *t;
+	CoioTask*       t;
 
 	if (ms > 0)
+	{
 		task->timeout = coio_now() + (ms * 1000000);
+	}
 
 	for (t = coio_sleeping.head; t != NULL && t->timeout && t->timeout < task->timeout; t = t->next);
 
-	if (t) {
+	if (t)
+	{
 		task->prev = t->prev;
 		task->next = t;
-	} else {
+	}
+	else
+	{
 		task->prev = coio_sleeping.tail;
 		task->next = NULL;
 	}
 
 	t = coio_current;
 
-	if (t->prev) {
+	if (t->prev)
+	{
 		t->prev->next = t;
-	} else {
+	}
+	else
+	{
 		coio_sleeping.head = t;
 	}
 
-	if (t->next) {
+	if (t->next)
+	{
 		t->next->prev = t;
-	} else {
+	}
+	else
+	{
 		coio_sleeping.tail = t;
 	}
 
@@ -162,63 +173,69 @@ coio_timeout(CoioTask * task, int ms)
 }
 
 int
-coio_delay(int ms)
+coio_delay_impl(int ms)
 {
-	uvlong 		when;
+	uvlong      when;
 	when = coio_timeout(coio_current, ms);
-	coio_transfer();
 	return (coio_now() - when) / 1000000;
 }
 
 void
-coio_yield()
+coio_yield_impl()
 {
 	coio_rdy(coio_current);
-	coio_transfer();
 }
 
 void
-coio_add(CoioTaskList * lst, CoioTask * task)
+coio_add(CoioTaskList* lst, CoioTask* task)
 {
-	if (lst->tail) {
+	if (lst->tail)
+	{
 		lst->tail->next = task;
 		task->prev = lst->tail;
-	} else {
+	}
+	else
+	{
 		lst->head = task;
 		task->prev = NULL;
 	}
+
 	lst->tail = task;
 	task->next = NULL;
 }
 
 void
-coio_del(CoioTaskList * lst, CoioTask * task)
+coio_del(CoioTaskList* lst, CoioTask* task)
 {
-	if (task->prev) {
+	if (task->prev)
+	{
 		task->prev->next = task->next;
-	} else {
+	}
+	else
+	{
 		lst->head = task->next;
 	}
 
-	if (task->next) {
+	if (task->next)
+	{
 		task->next->prev = task->prev;
-	} else {
+	}
+	else
+	{
 		lst->tail = task->prev;
 	}
 }
 
 void
-coio_rdy(CoioTask * task)
+coio_rdy(CoioTask* task)
 {
-	task->timeout = 0;
-	coio_del(&coio_sleeping, task);
-	coio_add(&coio_ready, task);
-}
-
-void
-coio_transfer()
-{
-	coro_transfer(&coio_current->ctx, &_sched_ctx);
+	if (task->ready == 0)
+	{
+		task->ready = 1;
+		task->timeout = 0;
+		coio_del(&coio_sleeping, task);
+		coio_add(&coio_ready, task);
+	}
 }
 
 uvlong
@@ -227,17 +244,17 @@ coio_now()
 #if defined(__APPLE__)
 	clock_serv_t cclock;
 	mach_timespec_t mts;
-
 	host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
 	clock_get_time(cclock, &mts);
 	mach_port_deallocate(mach_task_self(), cclock);
-
 	return (uvlong) mts.tv_sec * 1000 * 1000 * 1000 + mts.tv_nsec;
 #else
 	struct timespec ts;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
+	{
 		return -1;
+	}
 
 	return (uvlong) ts.tv_sec * 1000 * 1000 * 1000 + ts.tv_nsec;
 #endif

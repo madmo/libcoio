@@ -16,38 +16,39 @@
 #ifndef COIOIMPL_H
 #define COIOIMPL_H
 
-#include "coro.h"
+#include "coroutine.h"
 #include "coio.h"
 
 typedef struct CoioTaskList CoioTaskList;
 
-struct CoioTask {
-	coro_context 	ctx;
-	struct coro_stack stk;
+struct CoioTask
+{
+	coroutine_context ctx;
 
-	coio_func 	func;
-	void           *arg;
+	coio_func func;
+	void* arg;
 
-	uvlong 		timeout;
-	int 		done;
+	uvlong timeout;
+	int ready;
 
 	/* linked list support */
-	CoioTask       *next;
-	CoioTask       *prev;
+	CoioTask* next;
+	CoioTask* prev;
 };
 
-struct CoioTaskList {
-	CoioTask       *head;
-	CoioTask       *tail;
+struct CoioTaskList
+{
+	CoioTask* head;
+	CoioTask* tail;
 };
 
 extern CoioTaskList coio_ready;
 extern CoioTaskList coio_sleeping;
-extern CoioTask *coio_current;
+extern CoioTask* coio_current;
 
-void 		coio_add (CoioTaskList * lst, CoioTask * task);
-void 		coio_del (CoioTaskList * lst, CoioTask * task);
-void 		coio_rdy (CoioTask * task);
-void 		coio_transfer();
+void coio_add(CoioTaskList* lst, CoioTask* task);
+void coio_del(CoioTaskList* lst, CoioTask* task);
+void coio_rdy(CoioTask* task);
+void coio_transfer();
 
 #endif

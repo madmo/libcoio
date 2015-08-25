@@ -17,24 +17,30 @@
 #include "coio.h"
 
 void
-_t1(void *arg)
+_t1(coroutine_context* ctx, void* arg)
 {
-	printf("going to sleep 1000ms (1s)\n");
-	coio_delay(1000);
-	printf("woken up\n");
+	reenter(ctx)
+	{
+entry:
+		printf("going to sleep 1000ms (1s)\n");
+		coio_delay(1000);
+		printf("woken up\n");
+		finish(ctx);
+	}
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char** argv)
 {
 	(void) argc;
 	(void) argv;
+	coio_create(_t1, NULL);
 
-	coio_create(_t1, NULL, 0x8000);
-
-	if (coio_main() < 0) {
+	if (coio_main() < 0)
+	{
 		printf("Deadlocked\n");
 		return 1;
 	}
+
 	return 0;
 }
