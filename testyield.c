@@ -17,7 +17,7 @@
 #include "coio.h"
 
 void
-_t1(void *arg)
+_t1(void* arg)
 {
 	printf("Hello 1 from _t1\n");
 	coio_yield();
@@ -25,7 +25,7 @@ _t1(void *arg)
 }
 
 void
-_t2(void *arg)
+_t2(void* arg)
 {
 	printf("Hello 1 from _t2\n");
 	coio_yield();
@@ -33,7 +33,7 @@ _t2(void *arg)
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char** argv)
 {
 	(void) argc;
 	(void) argv;

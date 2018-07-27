@@ -31,14 +31,14 @@
 CoioTaskList 	coio_ready_list = {0, 0};
 CoioTaskList 	coio_sleeping = {0, 0};
 coro_context    coio_sched_ctx;
-CoioTask       *coio_current;
+CoioTask*       coio_current;
 unsigned long   coio_taskcount = 0;
 
 static int msleep(uvlong ms)
 {
 	struct timespec req, rem;
 
-	if(ms > 999) {
+	if (ms > 999) {
 		req.tv_sec = (int)(ms / 1000);
 		req.tv_nsec = (ms - ((long)req.tv_sec * 1000)) * 1000000;
 	} else {
@@ -46,7 +46,7 @@ static int msleep(uvlong ms)
 		req.tv_nsec = ms * 1000000;
 	}
 
-	return nanosleep(&req , &rem);
+	return nanosleep(&req, &rem);
 }
 
 static void
@@ -54,7 +54,7 @@ _process_events()
 {
 	uvlong 		now;
 	int 		ms = 5;
-	CoioTask       *t;
+	CoioTask*       t;
 
 	if ((t = coio_sleeping.head) != NULL && t->timeout != 0) {
 		now = coio_now();
@@ -111,9 +111,9 @@ coio_main()
 }
 
 static void
-_coio_entry(void *arg)
+_coio_entry(void* arg)
 {
-	CoioTask       *task = (CoioTask *) arg;
+	CoioTask*       task = (CoioTask*) arg;
 
 	task->func(task->arg);
 
@@ -122,15 +122,15 @@ _coio_entry(void *arg)
 }
 
 int
-coio_create(const char* name, coio_func f, void *arg, unsigned int stacksize)
+coio_create(const char* name, coio_func f, void* arg, unsigned int stacksize)
 {
-	CoioTask       *task;
+	CoioTask*       task;
 
 	task = calloc(1, sizeof(*task));
 	if (!task)
 		return -1;
 
-	if (!coro_stack_alloc(&task->stk, stacksize / sizeof(void *))) {
+	if (!coro_stack_alloc(&task->stk, stacksize / sizeof(void*))) {
 		free(task);
 		return -1;
 	}
@@ -147,9 +147,9 @@ coio_create(const char* name, coio_func f, void *arg, unsigned int stacksize)
 }
 
 uvlong
-coio_timeout(CoioTask * task, int ms)
+coio_timeout(CoioTask* task, int ms)
 {
-	CoioTask       *t;
+	CoioTask*       t;
 
 	if (ms >= 0) {
 		task->timeout = coio_now() + (ms * 1000000);
@@ -201,7 +201,7 @@ coio_yield()
 }
 
 void
-coio_add(CoioTaskList * lst, CoioTask * task)
+coio_add(CoioTaskList* lst, CoioTask* task)
 {
 	if (lst->tail) {
 		lst->tail->next = task;
@@ -215,7 +215,7 @@ coio_add(CoioTaskList * lst, CoioTask * task)
 }
 
 void
-coio_del(CoioTaskList * lst, CoioTask * task)
+coio_del(CoioTaskList* lst, CoioTask* task)
 {
 	if (task->prev) {
 		task->prev->next = task->next;
@@ -231,7 +231,7 @@ coio_del(CoioTaskList * lst, CoioTask * task)
 }
 
 void
-coio_ready(CoioTask * task)
+coio_ready(CoioTask* task)
 {
 	task->timeout = 0;
 	if (!task->ready) {
@@ -272,19 +272,17 @@ coio_now()
 void
 coio_debug()
 {
-	CoioTask *t;
+	CoioTask* t;
 
 	fprintf(stderr, ">>>\nCurrent tasks: %s\n", coio_current->name);
 
 	fprintf(stderr, "Sleeping tasks: ");
-	for (t = coio_sleeping.head; t != NULL; t = t->next)
-	{
+	for (t = coio_sleeping.head; t != NULL; t = t->next) {
 		fprintf(stderr, "%s ", t->name);
 	}
 
 	fprintf(stderr, "\nReady tasks: ");
-	for (t = coio_ready_list.head; t != NULL; t = t->next)
-	{
+	for (t = coio_ready_list.head; t != NULL; t = t->next) {
 		fprintf(stderr, "%s ", t->name);
 	}
 	fprintf(stderr, "\n");

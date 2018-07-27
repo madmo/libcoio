@@ -20,8 +20,7 @@
 
 #include <glib.h>
 
-struct coio_source
-{
+struct coio_source {
 	GSource base;
 };
 
@@ -116,8 +115,7 @@ GSource* coio_gsource_create()
 {
 	coro_create(&coio_sched_ctx, NULL, NULL, NULL, 0);
 
-	static GSourceFuncs funcs =
-	{
+	static GSourceFuncs funcs = {
 		coio_source_prepare,
 		coio_source_check,
 		coio_source_dispatch,

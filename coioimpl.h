@@ -25,22 +25,22 @@ struct CoioTask {
 	coro_context 	ctx;
 	struct coro_stack stk;
 
-	const char     *name;
+	const char*     name;
 	coio_func 	func;
-	void           *arg;
+	void*           arg;
 
 	uvlong 		timeout;
 	int		ready;
 	int 		done;
 
 	/* linked list support */
-	CoioTask       *next;
-	CoioTask       *prev;
+	CoioTask*       next;
+	CoioTask*       prev;
 };
 
 struct CoioTaskList {
-	CoioTask       *head;
-	CoioTask       *tail;
+	CoioTask*       head;
+	CoioTask*       tail;
 };
 
 extern CoioTaskList coio_ready_list;
@@ -48,8 +48,8 @@ extern CoioTaskList coio_sleeping;
 extern coro_context coio_sched_ctx;
 extern unsigned long coio_taskcount;
 
-void 		coio_add (CoioTaskList * lst, CoioTask * task);
-void 		coio_del (CoioTaskList * lst, CoioTask * task);
+void 		coio_add(CoioTaskList* lst, CoioTask* task);
+void 		coio_del(CoioTaskList* lst, CoioTask* task);
 void 		coio_transfer();
 void		coio_debug();
 
