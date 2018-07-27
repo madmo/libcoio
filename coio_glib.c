@@ -32,7 +32,7 @@ static gboolean coio_source_prepare(GSource* source, gint* timeout_)
 	int ms = 5;
 	CoioTask* t;
 
-	if (coio_ready.head) {
+	if (coio_ready_list.head) {
 		*timeout_ = 0;
 
 		/* if we return true here our check functions do not get called */
@@ -64,8 +64,8 @@ static gboolean coio_source_check(GSource* source)
 	if (coio_sleeping.head) {
 		/* wake up timed out tasks */
 		uvlong now = coio_now();
-		while ((t = coio_sleeping.head) && now >= t->timeout) {
-			coio_rdy(t);
+		while ((t = coio_sleeping.head) && t->timeout && now >= t->timeout) {
+			coio_ready(t);
 		}
 	}
 
@@ -79,17 +79,18 @@ static gboolean coio_source_dispatch(GSource* source, GSourceFunc callback, gpoi
 	gboolean result = G_SOURCE_CONTINUE;
 
 	/* error condition */
-	if (!coio_ready.head && !coio_sleeping.head)
+	if (!coio_ready_list.head && !coio_sleeping.head)
 		return G_SOURCE_REMOVE;
 
-	if (!coio_ready.head)
+	if (!coio_ready_list.head)
 		return G_SOURCE_CONTINUE;
 
-	last = coio_ready.tail;
+	last = coio_ready_list.tail;
 
 	do {
-		coio_current = coio_ready.head;
-		coio_del(&coio_ready, coio_current);
+		coio_current = coio_ready_list.head;
+		coio_current->ready = 0;
+		coio_del(&coio_ready_list, coio_current);
 		coro_transfer(&coio_sched_ctx, &coio_current->ctx);
 
 		if (coio_current->done) {
@@ -126,4 +127,10 @@ GSource* coio_gsource_create()
 	};
 
 	return g_source_new(&funcs, sizeof(struct coio_source));
+}
+
+gboolean coio_task_wakeup_helper(gpointer task)
+{
+	coio_ready((CoioTask*)task);
+	return G_SOURCE_REMOVE;
 }

@@ -20,5 +20,6 @@
 #include <glib.h>
 
 GSource* coio_gsource_create();
+gboolean coio_task_wakeup_helper(gpointer task);
 
 #endif
