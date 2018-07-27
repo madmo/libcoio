@@ -13,8 +13,11 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "coioimpl.h"
 #include "coro.h"
@@ -24,12 +27,26 @@
 #include <mach/mach.h>
 #endif
 
-static coro_context _sched_ctx;
-static unsigned long _taskcount = 0;
-
 CoioTaskList 	coio_ready = {0, 0};
 CoioTaskList 	coio_sleeping = {0, 0};
+coro_context    coio_sched_ctx;
 CoioTask       *coio_current;
+unsigned long   coio_taskcount = 0;
+
+static int msleep(uvlong ms)
+{
+	struct timespec req, rem;
+
+	if(ms > 999) {
+		req.tv_sec = (int)(ms / 1000);
+		req.tv_nsec = (ms - ((long)req.tv_sec * 1000)) * 1000000;
+	} else {
+		req.tv_sec = 0;
+		req.tv_nsec = ms * 1000000;
+	}
+
+	return nanosleep(&req , &rem);
+}
 
 static void
 _process_events()
@@ -47,7 +64,7 @@ _process_events()
 		}
 	}
 	/* TODO:do I/O polling instead of usleep */
-	usleep(ms * 1000);
+	msleep(ms);
 
 	/* handle CLOCK_MONOTONIC bugs (VirtualBox anyone?) */
 	while (!coio_ready.head) {
@@ -63,7 +80,7 @@ int
 coio_main()
 {
 	/* initialize empty ctx for scheduler */
-	coro_create(&_sched_ctx, NULL, NULL, NULL, 0);
+	coro_create(&coio_sched_ctx, NULL, NULL, NULL, 0);
 
 	/* scheduler mainloop */
 	for (;;) {
@@ -75,17 +92,17 @@ coio_main()
 
 		coio_current = coio_ready.head;
 		coio_del(&coio_ready, coio_current);
-		coro_transfer(&_sched_ctx, &coio_current->ctx);
+		coro_transfer(&coio_sched_ctx, &coio_current->ctx);
 
 		if (coio_current->done) {
-			_taskcount--;
+			coio_taskcount--;
 			coro_stack_free(&coio_current->stk);
 			free(coio_current);
 		}
 		coio_current = NULL;
 	}
 
-	if (_taskcount) {
+	if (coio_taskcount) {
 		return -1;
 	}
 	return 0;
@@ -99,7 +116,7 @@ _coio_entry(void *arg)
 	task->func(task->arg);
 
 	task->done = 1;
-	coro_transfer(&coio_current->ctx, &_sched_ctx);
+	coro_transfer(&coio_current->ctx, &coio_sched_ctx);
 }
 
 int
@@ -121,7 +138,7 @@ coio_create(coio_func f, void *arg, unsigned int stacksize)
 	coro_create(&task->ctx, _coio_entry, task, task->stk.sptr, task->stk.ssze);
 
 	coio_add(&coio_ready, task);
-	_taskcount++;
+	coio_taskcount++;
 
 	return 0;
 }
@@ -196,13 +213,13 @@ coio_del(CoioTaskList * lst, CoioTask * task)
 {
 	if (task->prev) {
 		task->prev->next = task->next;
-	} else {
+	} else if (lst->head == task) {
 		lst->head = task->next;
 	}
 
 	if (task->next) {
 		task->next->prev = task->prev;
-	} else {
+	} else if (lst->tail == task) {
 		lst->tail = task->prev;
 	}
 }
@@ -218,7 +235,7 @@ coio_rdy(CoioTask * task)
 void
 coio_transfer()
 {
-	coro_transfer(&coio_current->ctx, &_sched_ctx);
+	coro_transfer(&coio_current->ctx, &coio_sched_ctx);
 }
 
 uvlong

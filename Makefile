@@ -2,14 +2,15 @@ LIB = libcoio.a
 
 OBJS = \
 	coro.o \
-	coio.o
+	coio.o \
+	coio_glib.o
 
 all: $(LIB)
 
 $(OBJS): coio.h coro.h
 
 .c.o:
-	$(CC) $(CFLAGS) -W -Wall -Wextra -Werror -c $*.c
+	$(CC) $(shell pkg-config --cflags glib-2.0) $(CFLAGS) -W -Wall -Wextra -Werror -c $*.c
 
 $(LIB): $(OBJS)
 	$(AR) rvc $(LIB) $?

@@ -44,6 +44,8 @@ struct CoioTaskList {
 extern CoioTaskList coio_ready;
 extern CoioTaskList coio_sleeping;
 extern CoioTask *coio_current;
+extern coro_context coio_sched_ctx;
+extern unsigned long coio_taskcount;
 
 void 		coio_add (CoioTaskList * lst, CoioTask * task);
 void 		coio_del (CoioTaskList * lst, CoioTask * task);
