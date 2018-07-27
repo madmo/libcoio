@@ -1,11 +1,12 @@
 LIB = libcoio.a
 
 OBJS = \
+	coro.o \
 	coio.o
 
 all: $(LIB)
 
-$(OBJS): coio.h coroutine.h
+$(OBJS): coio.h coro.h
 
 .c.o:
 	$(CC) $(CFLAGS) -W -Wall -Wextra -Werror -c $*.c
@@ -13,10 +14,10 @@ $(OBJS): coio.h coroutine.h
 $(LIB): $(OBJS)
 	$(AR) rvc $(LIB) $?
 
-testyield: testyield.c $(LIB) coio.h coroutine.h
+testyield: testyield.c $(LIB)
 	$(CC) $(CFLAGS) -o $@ testyield.c $(LIB)
 
-testdelay: testdelay.c $(LIB) coio.h coroutine.h
+testdelay: testdelay.c $(LIB)
 	$(CC) $(CFLAGS) -o $@ testdelay.c $(LIB)
 
 test: testyield testdelay
