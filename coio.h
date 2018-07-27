@@ -20,15 +20,18 @@
 extern 		"C" {
 #endif
 
-	typedef struct CoioTask CoioTask;
-	typedef void    (*coio_func) (void *arg);
-	typedef unsigned long long uvlong;
+typedef struct CoioTask CoioTask;
+typedef void (*coio_func)(void* arg);
+typedef unsigned long long uvlong;
 
-	int 		coio_main ();
-	int 		coio_create(coio_func f, void *arg, unsigned int stacksize);
-	void 		coio_yield();
-	uvlong 		coio_now();
-	int 		coio_delay(int ms);
+extern CoioTask* coio_current;
+
+int 		coio_main();
+int 		coio_create(const char* name, coio_func f, void* arg, unsigned int stacksize);
+void 		coio_yield();
+uvlong 		coio_now();
+int 		coio_delay(int ms);
+void 		coio_ready(CoioTask* task);
 
 #ifdef __cplusplus
 }

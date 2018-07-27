@@ -17,7 +17,7 @@
 #include "coio.h"
 
 void
-_t1(void *arg)
+_t1(void* arg)
 {
 	printf("going to sleep 1000ms (1s)\n");
 	coio_delay(1000);
@@ -25,7 +25,7 @@ _t1(void *arg)
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char** argv)
 {
 	(void) argc;
 	(void) argv;

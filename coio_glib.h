@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Moritz Bitsch <moritzbitsch@gmail.com>
+ * Copyright (c) 2018 Moritz Bitsch <moritzbitsch@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,37 +13,13 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <stdio.h>
-#include "coio.h"
 
-void
-_t1(void* arg)
-{
-	printf("Hello 1 from _t1\n");
-	coio_yield();
-	printf("Hello 2 from _t1\n");
-}
+#ifndef COIO_GLIB_H
+#define COIO_GLIB_H
 
-void
-_t2(void* arg)
-{
-	printf("Hello 1 from _t2\n");
-	coio_yield();
-	printf("Hello 2 from _t2\n");
-}
+#include <glib.h>
 
-int
-main(int argc, char** argv)
-{
-	(void) argc;
-	(void) argv;
+GSource* coio_gsource_create();
+gboolean coio_task_wakeup_helper(gpointer task);
 
-	coio_create(_t1, NULL, 0x8000);
-	coio_create(_t2, NULL, 0x8000);
-
-	if (coio_main() < 0) {
-		printf("Deadlocked\n");
-		return 1;
-	}
-	return 0;
-}
+#endif
