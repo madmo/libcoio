@@ -305,7 +305,7 @@ void coro_stack_free (struct coro_stack *stack);
 #  define CORO_LOSER 1 /* you don't win with windoze */
 # elif (__linux || __OpenBSD__ || __APPLE__) && (__i386 || (__x86_64 && !__ILP32))
 #  define CORO_ASM 1
-# elif defined HAVE_UCONTEXT_H
+# elif defined HAVE_UCONTEXT_H || (__linux)
 #  define CORO_UCONTEXT 1
 # elif defined HAVE_SETJMP_H && defined HAVE_SIGALTSTACK
 #  define CORO_SJLJ 1
