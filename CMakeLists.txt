@@ -13,10 +13,13 @@ target_compile_options(${PROJECT_NAME} PRIVATE -W -Wall -Wextra -Werror)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB2 REQUIRED glib-2.0)
+pkg_check_modules(GIO2 REQUIRED gio-2.0)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${GLIB2_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${GLIB2_LIBRARIES})
 
+target_include_directories(${PROJECT_NAME} PRIVATE ${GIO2_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${GIO2_LIBRARIES})
 
 target_link_libraries(${PROJECT_NAME} m)
 

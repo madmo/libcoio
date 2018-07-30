@@ -32,7 +32,7 @@
 CoioTaskList 	coio_ready_list = {0, 0};
 CoioTaskList 	coio_sleeping = {0, 0};
 coro_context    coio_sched_ctx;
-CoioTask*       coio_current;
+CoioTask*       coio_current = NULL;
 unsigned long   coio_taskcount = 0;
 
 static int msleep(uvlong ms)

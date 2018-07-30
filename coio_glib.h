@@ -18,8 +18,16 @@
 #define COIO_GLIB_H
 
 #include <glib.h>
+#include <gio/gio.h>
+#include "coio.h"
+
+typedef struct async_helper {
+	CoioTask* task;
+	GAsyncResult* res;
+} CoioGAsyncResultHelper;
 
 GSource* coio_gsource_create();
 gboolean coio_task_wakeup_helper(gpointer task);
+void coio_gasyncresult_wakeup_helper(GObject *source_object, GAsyncResult *res, gpointer user_data);
 
 #endif

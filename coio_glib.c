@@ -19,6 +19,7 @@
 #include "coioimpl.h"
 
 #include <glib.h>
+#include <gio/gio.h>
 
 struct coio_source {
 	GSource base;
@@ -68,7 +69,10 @@ static gboolean coio_source_check(GSource* source)
 		}
 	}
 
-	return TRUE;
+	if (coio_ready_list.head)
+		return TRUE;
+
+	return FALSE;
 }
 
 static gboolean coio_source_dispatch(GSource* source, GSourceFunc callback, gpointer user_data)
@@ -76,10 +80,6 @@ static gboolean coio_source_dispatch(GSource* source, GSourceFunc callback, gpoi
 	(void)source;
 	CoioTask* last;
 	gboolean result = G_SOURCE_CONTINUE;
-
-	/* error condition */
-	if (!coio_ready_list.head && !coio_sleeping.head)
-		return G_SOURCE_REMOVE;
 
 	if (!coio_ready_list.head)
 		return G_SOURCE_CONTINUE;
@@ -98,6 +98,8 @@ static gboolean coio_source_dispatch(GSource* source, GSourceFunc callback, gpoi
 			free(coio_current);
 		}
 	} while (coio_current != last);
+
+	coio_current = NULL;
 
 	if (callback) {
 		result = callback(user_data);
@@ -131,4 +133,12 @@ gboolean coio_task_wakeup_helper(gpointer task)
 {
 	coio_ready((CoioTask*)task);
 	return G_SOURCE_REMOVE;
+}
+
+void coio_gasyncresult_wakeup_helper(GObject *source_object, GAsyncResult *res, gpointer user_data)
+{
+	(void)source_object;
+	CoioGAsyncResultHelper* helper = (CoioGAsyncResultHelper*)user_data;
+	helper->res = g_object_ref(res);
+	coio_ready(helper->task);
 }
