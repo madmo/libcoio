@@ -17,4 +17,7 @@ pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 target_include_directories(${PROJECT_NAME} PUBLIC ${GLIB2_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${GLIB2_LIBRARIES})
 
+
+target_link_libraries(${PROJECT_NAME} m)
+
 target_include_directories(${PROJECT_NAME} PUBLIC .)

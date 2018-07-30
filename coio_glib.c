@@ -47,7 +47,7 @@ static gboolean coio_source_prepare(GSource* source, gint* timeout_)
 		if (now >= t->timeout) {
 			ms = 0;
 		} else {
-			ms = (t->timeout - now) / 1000000;
+			ms = (t->timeout - now);
 		}
 	}
 

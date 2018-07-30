@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <math.h>
 #include <stdio.h>
 
 #include "coioimpl.h"
@@ -61,7 +62,7 @@ _process_events()
 		if (now >= t->timeout) {
 			ms = 0;
 		} else {
-			ms = (t->timeout - now) / 1000000;
+			ms = (t->timeout - now);
 		}
 	}
 	/* TODO:do I/O polling instead of usleep */
@@ -152,7 +153,7 @@ coio_timeout(CoioTask* task, int ms)
 	CoioTask*       t;
 
 	if (ms >= 0) {
-		task->timeout = coio_now() + (ms * 1000000);
+		task->timeout = coio_now() + ms;
 		for (t = coio_sleeping.head; t != NULL && t->timeout && t->timeout < task->timeout; t = t->next);
 	} else {
 		task->timeout = 0;
@@ -190,7 +191,7 @@ coio_delay(int ms)
 	uvlong 		when;
 	when = coio_timeout(coio_current, ms);
 	coio_transfer();
-	return (coio_now() - when) / 1000000;
+	return (coio_now() - when);
 }
 
 void
@@ -252,21 +253,19 @@ coio_now()
 {
 #if defined(__APPLE__)
 	clock_serv_t cclock;
-	mach_timespec_t mts;
+	mach_timespec_t ts;
 
 	host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
-	clock_get_time(cclock, &mts);
-	mach_port_deallocate(mach_task_self(), cclock);
-
-	return (uvlong) mts.tv_sec * 1000 * 1000 * 1000 + mts.tv_nsec;
+	clock_get_time(cclock, &ts);
+	mach_port_deallocate(mach_task_self(), cclock);	
 #else
 	struct timespec ts;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
 		return -1;
-
-	return (uvlong) ts.tv_sec * 1000 * 1000 * 1000 + ts.tv_nsec;
 #endif
+
+	return (uvlong) ts.tv_sec * 1000 + round(ts.tv_nsec / 1000000.0);
 }
 
 void
