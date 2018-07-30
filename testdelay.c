@@ -30,7 +30,7 @@ main(int argc, char** argv)
 	(void) argc;
 	(void) argv;
 
-	coio_create(_t1, NULL, 0x8000);
+	coio_create("t1", _t1, NULL, 0x8000);
 
 	if (coio_main() < 0) {
 		printf("Deadlocked\n");

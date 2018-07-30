@@ -16,10 +16,10 @@ $(LIB): $(OBJS)
 	$(AR) rvc $(LIB) $?
 
 testyield: testyield.c $(LIB)
-	$(CC) $(CFLAGS) -o $@ testyield.c $(LIB)
+	$(CC) $(CFLAGS) -o $@ testyield.c $(LIB) -lm
 
 testdelay: testdelay.c $(LIB)
-	$(CC) $(CFLAGS) -o $@ testdelay.c $(LIB)
+	$(CC) $(CFLAGS) -o $@ testdelay.c $(LIB) -lm
 
 test: testyield testdelay
 
