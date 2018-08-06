@@ -138,7 +138,7 @@ gboolean coio_task_wakeup_helper(gpointer task)
 void coio_gasyncresult_wakeup_helper(GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
 	(void)source_object;
-	CoioGAsyncResultHelper* helper = (CoioGAsyncResultHelper*)user_data;
-	helper->res = g_object_ref(res);
-	coio_ready(helper->task);
+	CoioChannel* ch = (CoioChannel*)user_data;
+
+	coio_channbsendp(ch, g_object_ref(res));
 }
