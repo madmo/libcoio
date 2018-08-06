@@ -4,6 +4,7 @@ project(coio)
 add_library(${PROJECT_NAME}
     coro.c
     coio.c
+    channel.c
     coio_glib.c)
 
 add_custom_target(${PROJECT_NAME}_files SOURCES coioimpl.h)

@@ -33,6 +33,64 @@ uvlong 		coio_now();
 int 		coio_delay(int ms);
 void 		coio_ready(CoioTask* task);
 
+/* channel communication from libtask */
+typedef struct CoioAlt CoioAlt;
+typedef struct Altarray Altarray;
+typedef struct CoioChannel CoioChannel;
+
+enum
+{
+	COIO_CHANEND,
+	COIO_CHANSND,
+	COIO_CHANRCV,
+	COIO_CHANNOP,
+	COIO_CHANNOBLK,
+};
+
+struct CoioAlt
+{
+	CoioChannel*	c;
+	void*		v;
+	unsigned int	op;
+	CoioTask*	task;
+	CoioAlt*		xalt;
+};
+
+struct Altarray
+{
+	CoioAlt**		a;
+	unsigned int	n;
+	unsigned int	m;
+};
+
+struct CoioChannel
+{
+	unsigned int	bufsize;
+	unsigned int	elemsize;
+	unsigned char*	buf;
+	unsigned int	nbuf;
+	unsigned int	off;
+	Altarray	asend;
+	Altarray	arecv;
+	char*		name;
+};
+
+int		coio_chanalt(CoioAlt* alts);
+CoioChannel*	coio_chancreate(int elemsize, int elemcnt);
+void		coio_chanfree(CoioChannel* c);
+int		coio_channbrecv(CoioChannel* c, void* v);
+void*		coio_channbrecvp(CoioChannel* c);
+unsigned long	coio_channbrecvul(CoioChannel* c);
+int		coio_channbsend(CoioChannel* c, void* v);
+int		coio_channbsendp(CoioChannel* c, void* v);
+int		coio_channbsendul(CoioChannel* c, unsigned long v);
+int		coio_chanrecv(CoioChannel* c, void* v);
+void*		coio_chanrecvp(CoioChannel* c);
+unsigned long	coio_chanrecvul(CoioChannel* c);
+int		coio_chansend(CoioChannel* c, void* v);
+int		coio_chansendp(CoioChannel* c, void* v);
+int		coio_chansendul(CoioChannel* c, unsigned long v);
+
 #ifdef __cplusplus
 }
 #endif
